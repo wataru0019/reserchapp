@@ -44,7 +44,20 @@
             body: JSON.stringify({ query: query, thread_id: thread_id })
         })
         const result = await response.json()
+        // messages = result.data;
         return result.data
+    }
+
+    async function getMessages(_thread_id: string) {
+        thread_id = _thread_id
+        const response = await fetch(`/ai/chat?thread_id=${thread_id}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        })
+        const result = await response.json()
+        messages = result.messages
     }
     
     // メッセージが空かどうかを確認する関数
@@ -60,7 +73,7 @@
                     <a
                         href="#"
                         class="block p-2 border border-gray-300 rounded-md hover:bg-gray-100"
-                        onclick={() => thread_id = thread}
+                        onclick={() => getMessages(thread)}
                     >
                         {thread}
                     </a>

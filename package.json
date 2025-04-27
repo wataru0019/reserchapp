@@ -31,6 +31,7 @@
 	},
 	"dependencies": {
 		"@langchain/anthropic": "^0.3.18",
+		"@langchain/community": "^0.3.41",
 		"@langchain/core": "^0.3.45",
 		"@langchain/langgraph": "^0.2.65",
 		"@langchain/langgraph-checkpoint-postgres": "^0.0.4",

@@ -1,7 +1,10 @@
 import { PromptTemplate } from "@langchain/core/prompts";
 import { StructuredOutputParser, StringOutputParser } from "@langchain/core/output_parsers";
+import { AIMessage } from "@langchain/core/messages";
+import { TavilySearchResults } from "@langchain/community/tools/tavily_search";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { PostgresSaver } from "@langchain/langgraph-checkpoint-postgres";
+import { ToolNode } from "@langchain/langgraph/prebuilt"
 import {
     START,
     END,
@@ -10,11 +13,24 @@ import {
     MemorySaver,
   } from "@langchain/langgraph";
 import { v4 as uuidv4 } from "uuid";
+import { DynamicTool } from "@langchain/core/tools";
 
+const calculatorTool = new DynamicTool({
+  name: "calculator",
+  description: "Add two numbers together",
+  func: async (input: string) => {
+    const [num1, num2] = JSON.parse(input);
+    return JSON.stringify({ num: num1 + num2 });
+  },
+});
+
+const agentTool = [new TavilySearchResults({maxResults: 3}), calculatorTool]
+
+const toolNode = new ToolNode(agentTool)
 const model = new ChatAnthropic({
     model: "claude-3-5-haiku-20241022",
     temperature: 0.7,
-})
+}).bindTools(agentTool)
 
 const checkpointer = PostgresSaver.fromConnString(
   "postgresql://myuser:Wa3129Postgre@localhost:5432/practice_db",
@@ -24,6 +40,17 @@ const checkpointer = PostgresSaver.fromConnString(
 );
 
 await checkpointer.setup();
+
+function shouldContinue({ messages }: typeof MessagesAnnotation.State) {
+  const lastMessage = messages[messages.length - 1] as AIMessage;
+
+  // If the LLM makes a tool call, then we route to the "tools" node
+  if (lastMessage.tool_calls?.length) {
+    return "tools";
+  }
+  // Otherwise, we stop (reply to the user) using the special "__end__" node
+  return "__end__";
+}
 
 // モデルを呼び出す関数を定義
 // この関数は会話の状態(state)を受け取り、AIモデルに質問して返答を得る
@@ -40,7 +67,9 @@ const callModel = async (state: typeof MessagesAnnotation.State) => {
     // Define the node and edge
     .addNode("model", callModel)
     .addEdge(START, "model")
-    .addEdge("model", END);
+    .addNode("tools", toolNode)
+    .addEdge("tools", "model")
+    .addConditionalEdges("model", shouldContinue);
   
   // Add memory
   const app = workflow.compile({ checkpointer: checkpointer });
