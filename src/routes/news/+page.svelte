@@ -12,15 +12,15 @@
     }
 </script>
 
-<div class="container grid grid-cols-4 mx-auto w-full max-w-md">
+<div class="container grid grid-cols-3 gap-x-4 gap-y-6 mx-auto w-full max-w-[800px] min-w-0 overflow-x-hidden">
     <h1 class="col-span-full flex justify-center">News</h1>
-    {#each data.posts as {title, description}}
+    {#each data.posts as {title, link}}
         <Card 
             title={title}
-            descriptin={description}
+            link={link}
         />
     {/each}
-    <p>{count}</p>
+    <p class="col-span-full">{count}</p>
     <Button
         word="カウントを増やす"
         gridClass="col-span-full"
@@ -29,5 +29,5 @@
 </div>
 
 <style>
-
+/* 必要ならここに追加のスタイルを */
 </style>
